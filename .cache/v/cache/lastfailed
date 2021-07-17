@@ -1,0 +1,6 @@
+{
+  "tests/test_paging.py::test_supports_paging_by_cast": true,
+  "tests/test_paging.py::test_supports_paging_by_genre": true,
+  "tests/test_paging.py::test_supports_paging_by_text": true,
+  "tests/test_user_management.py::test_login": true
+}
