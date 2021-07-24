@@ -277,3 +277,102 @@ db.nycFacilities.aggregate(
 		}
 	]
 ).pretty()	
+
+
+// =======================================================================
+//$ Cursor like stages
+
+
+// count
+
+// MQL
+db.solarSystem.find({},{_id: 0, name: 1, numberOfMoons: 1}).count()
+
+
+//Mongo Aggregate
+db.solarSystem.aggregate(
+	[
+		{
+			$match:{
+				type: "Terrestrial planet"
+			}
+		},
+		{
+			$project:{
+				_id : 0,
+				name : 1,
+				numberOfMoons : 1
+			}
+		},
+		{
+			$count : "terrestrial planets count"
+		}
+	]
+)
+
+// skip
+
+// MQL
+db.solarSystem.find({},{_id: 0, name: 1, numberOfMoons: 1}).skip(5).pretty()
+
+//Mongo Aggregate
+db.solarSystem.aggregate(
+	[
+		{
+			$project:{
+				_id : 0,
+				name : 1,
+				numberOfMoons : 1
+			}
+		},
+		{
+			$skip : 1
+		}
+	]
+)
+
+// limit
+
+// MQL
+db.solarSystem.find({},{_id: 0, name: 1, numberOfMoons: 1}).limit(5).pretty()
+
+//Mongo Aggregate
+db.solarSystem.aggregate(
+	[
+		{
+			$project:{
+				_id : 0,
+				name : 1,
+				numberOfMoons : 1
+			}
+		},
+		{
+			$limit : 5
+		}
+	]
+)
+
+// sort
+// sort can make use of indexes when placed ahead of project in the pipeline
+// sort limited to 100MB by default
+// to sort larger datasets, we need to allow diskuse
+// MQL
+
+db.solarSystem.find({},{_id: 0, name: 1, numberOfMoons: 1}).sort({numberOfMoons: -1}).pretty()
+
+//Mongo Aggregate
+db.solarSystem.aggregate(
+	[
+		{
+			$project:{
+				_id : 0,
+				name : 1,
+				hasMagneticField: 1,
+				numberOfMoons : 1
+			}
+		},
+		{
+			$sort : {hasMagneticField : -1, numberOfMoons : -1}
+		}
+	], {allowDiskUse: true}
+)
