@@ -376,3 +376,22 @@ db.solarSystem.aggregate(
 		}
 	], {allowDiskUse: true}
 )
+
+// ============================================================================================
+$sample
+-- select a random number of documents
+-- {$sample : {size: <N>}}
+   when
+   a. N<= 5% of the documents in source collection AND
+   b. Source collection has >= 100 documents AND
+   c. $sample is the first stage
+   
+db.nycFacilities.aggregate(
+	[
+		{
+			$sample: {size: 200}
+		}
+	]
+)   
+    
+// ============================================================================================    
