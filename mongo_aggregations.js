@@ -1,4 +1,4 @@
-$MATCH
+//$MATCH
 
 db.movies.find({}).count()
 
@@ -81,7 +81,7 @@ var pipeline = [
    }	   
 ]
 
--- find all the titles where the number of words in the title is just 1
+// find all the titles where the number of words in the title is just 1
 
 db.movies.aggregate(
 	[
@@ -100,8 +100,8 @@ db.movies.aggregate(
 ).itcount()
 
 
-=====================================================================================================
-$PROJECT
+//=====================================================================================================
+//$PROJECT
 
 db.solarSystem.aggregate(
 	[
@@ -127,7 +127,7 @@ db.solarSystem.aggregate([{
 
 
 		
-=====================================================================================================
+//=====================================================================================================
 
 
 db.movies.find({"_id" : ObjectId("573a1390f29313caabcd4217")},{cast:1,directors:1,writers:1}).pretty()	
@@ -211,10 +211,6 @@ db.movies.aggregate(
 	]
 ).itcount()
 
-.itcount()
-		
-		
-		
 
 db.movies.aggregate(
 	[
@@ -241,3 +237,43 @@ db.movies.aggregate(
 )		
 
 
+// =======================================================================
+//$ GEONEAR
+// The collection can have one and only one 2d sphere index
+// if using 2d sphere, the distance is returned in meters
+// if using legacy coordinated, the distance is returned in radians
+//$geoNear must be the first stage in an aggregation pipeline
+
+db.nycFacilities.aggregate(
+	[
+		{
+			$geoNear:{
+				near: {
+					type: "Point",
+					coordinates: [-73.98769766092299, 40.757345233626594]
+				},
+				distanceField: "distanceFromMongoDB",
+				spherical: true
+			}
+		}
+	]
+).pretty()	
+
+db.nycFacilities.aggregate(
+	[
+		{
+			$geoNear:{
+				near: {
+					type: "Point",
+					coordinates: [-73.98769766092299, 40.757345233626594]
+				},
+				distanceField: "distanceFromMongoDB",
+				spherical: true,
+				query: {type: "Hospital"}
+			}
+		},
+		{
+			$limit: 5
+		}
+	]
+).pretty()	
