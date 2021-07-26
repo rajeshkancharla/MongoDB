@@ -602,3 +602,56 @@ db.movies.aggregate([
 		}
 	}
 ])
+
+// ###########################################################################################################################################################
+//Accumulator Expressions
+//Accumulator Expressions in $project operate over an array in the current document
+//They don't carry values over all documents - no memory between documents
+
+// find the maximum average high temperature in a document with an array of documents
+// $$this corresponds to the value in current array and $$value is accumulator variable
+
+db.icecream_data.aggregate([
+	{
+		$project: {
+			_id: 0,
+			max_high: {
+				$reduce: {
+					input: "$trends",
+					initialValue: -Infinity,
+					in: {
+						$cond: [
+							{$gt: ["$$this.avg_high_tmp", "$$value"]},
+							"$$this.avg_high_tmp",
+							"$$value"
+						]
+					}
+				}
+			}
+		}
+	}
+])
+
+db.icecream_data.aggregate([
+	{
+		$project: {
+			_id: 0,
+			max_high: {$max: "$trends.avg_high_tmp"},
+			max_low: {$min: "$trends.avg_low_tmp"}
+		}
+	}
+])
+
+db.icecream_data.aggregate([
+	{
+		$project: {
+			_id: 0,
+			avg_cpi: {$avg: "$trends.icecream_cpi"},
+			cpi_deviation: {$stdDevPop: "$trends.icecream_cpi"},
+			"yearly sales (in millions)": {$sum: "$trends.icecream_sales_in_millions"}
+		}
+	}
+])
+
+// ###########################################################################################################################################################
+// Exercise
