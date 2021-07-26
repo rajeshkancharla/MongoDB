@@ -782,3 +782,77 @@ db.movies.aggregate([
 		}
 	}
 ])
+
+// ###########################################################################################################################################################
+// Exercise
+// find all movies per cast and average rating
+db.movies.aggregate([
+	{
+		$match:{
+			languages: {$in: ["English"]}
+		}
+	},
+	{
+		$unwind: "$cast"
+	},
+	{
+		$group:{
+			_id: "$cast",
+			"numFilms": {$sum: 1},
+			"average_value": {$avg: "$imdb.rating"}
+		}
+	},
+	{
+		$addFields:{
+			"average": {$trunc: ["$average_value",1]}
+		}
+	},
+	{
+		$project:{
+			_id : 1,
+			numFilms : 1,
+			average : 1
+		}
+	},
+	{
+		$sort:{
+			numFilms: -1
+		}
+	}
+])
+
+// other way to do the same
+db.movies.aggregate([
+  {
+    $match: {
+      languages: "English"
+    }
+  },
+  {
+    $project: { _id: 0, cast: 1, "imdb.rating": 1 }
+  },
+  {
+    $unwind: "$cast"
+  },
+  {
+    $group: {
+      _id: "$cast",
+      numFilms: { $sum: 1 },
+      average: { $avg: "$imdb.rating" }
+    }
+  },
+  {
+    $project: {
+      numFilms: 1,
+      average: {
+        $divide: [{ $trunc: { $multiply: ["$average", 10] } }, 10]
+      }
+    }
+  },
+  {
+    $sort: { numFilms: -1 }
+  },
+  {
+    $limit: 1
+  }
+])
