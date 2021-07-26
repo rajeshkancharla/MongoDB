@@ -655,3 +655,57 @@ db.icecream_data.aggregate([
 
 // ###########################################################################################################################################################
 // Exercise
+// find all movies where there is an oscar award and find ratings metrics
+
+db.movies.aggregate([
+	{
+		$match: {
+			"awards": {$exists: true}
+		}
+	},
+	{
+		$addFields:{
+			wonOscar: {
+				$regexMatch: {
+					input: "$awards",
+					regex: /Won.*Oscar/
+				}
+			}
+		}
+	},
+		{
+		$match: {
+			wonOscar: true
+		}
+	},
+	{
+		$group:{
+			_id: null,
+			highest_rating: {$max: "$imdb.rating"},
+			lowest_rating: {$min: "$imdb.rating"},
+			average_rating: {$avg: "$imdb.rating"},
+			deviation: {$stdDevSamp: "$imdb.rating"}
+		}
+	}
+])
+
+//efficient way
+
+db.movies.aggregate([
+  {
+    $match: {
+      awards: /Won \d{1,2} Oscars?/
+    }
+  },
+  {
+    $group: {
+      _id: null,
+      highest_rating: { $max: "$imdb.rating" },
+      lowest_rating: { $min: "$imdb.rating" },
+      average_rating: { $avg: "$imdb.rating" },
+      deviation: { $stdDevSamp: "$imdb.rating" }
+    }
+  }
+])
+
+// ###########################################################################################################################################################
