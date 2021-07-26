@@ -5,6 +5,10 @@
 
 db.movies.find({}).count()
 
+// check if a field exists in collection
+
+db.movies.findOne({"awards": {$exists: true}})
+
 
 // match and project using MQL
 
