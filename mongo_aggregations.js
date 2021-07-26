@@ -1,7 +1,12 @@
+// ###########################################################################################################################################################
 //$MATCH
+
+// get overall count in a collection
 
 db.movies.find({}).count()
 
+
+// match and project using MQL
 
 db.movies.find(
 	{
@@ -14,19 +19,7 @@ db.movies.find(
 	,{"genres":1,"_id":0,"imdb.rating":1,"type":1,"rated":1,"languages":1}
 )
 
-var pipeline = [ 
-	{ 
-		"$match": {
-			"$and": [
-				{"type":"movie"}
-				,{"imdb.rating": {"$gte":7}}
-				,{"genres": {"$not": {"$elemMatch": {"$in":["Horror","Crime"]}}}}
-				,{"rated": {"$in":["G","PG"]}}
-				,{"languages": {"$elemMatch": {"$in":["English","Japanese"]}}}
-			]
-		} 
-	} 
-]
+// create mongodb aggregation pipeline using match and project
 
 var pipeline = [ 
 	{ 
@@ -100,7 +93,7 @@ db.movies.aggregate(
 ).itcount()
 
 
-//=====================================================================================================
+// ###########################################################################################################################################################
 //$PROJECT
 
 db.solarSystem.aggregate(
@@ -124,14 +117,12 @@ db.solarSystem.aggregate([{
 		gravityRatio: { $divide: [ "$gravity.value", 9.8 ] },
 		myWeight: { $multiply: [ { $divide: [ "$gravity.value", 9.8 ] },77 ] }	
 }}])
-
-
-		
-//=====================================================================================================
-
+	
+// ###########################################################################################################################################################
 
 db.movies.find({"_id" : ObjectId("573a1390f29313caabcd4217")},{cast:1,directors:1,writers:1}).pretty()	
 
+// find all movies where the cast, directors and writers fields exist and extract common elements from each of them
 db.movies.aggregate(
 	[
 		{ 
@@ -209,35 +200,9 @@ db.movies.aggregate(
 			}
 		}
 	]
-).itcount()
+).itcount()		
 
-
-db.movies.aggregate(
-	[
-		{
-			$project: {
-				writers:1,
-				writers_split: {
-				  $map: {
-					input: "$writers",
-					as: "writer",
-					in: {
-					  $arrayElemAt: [
-						{
-						  $split: [ "$$writer", " (" ]
-						},
-						0
-					  ]
-					}
-				  }
-				}
-			}
-		}
-	]
-)		
-
-
-// =======================================================================
+// ###########################################################################################################################################################
 //$ GEONEAR
 // The collection can have one and only one 2d sphere index
 // if using 2d sphere, the distance is returned in meters
@@ -279,9 +244,8 @@ db.nycFacilities.aggregate(
 ).pretty()	
 
 
-// =======================================================================
+// ###########################################################################################################################################################
 //$ Cursor like stages
-
 
 // count
 
@@ -355,7 +319,7 @@ db.solarSystem.aggregate(
 // sort
 // sort can make use of indexes when placed ahead of project in the pipeline
 // sort limited to 100MB by default
-// to sort larger datasets, we need to allow diskuse
+// to sort larger datasets, we need to allowDiskUse: True
 // MQL
 
 db.solarSystem.find({},{_id: 0, name: 1, numberOfMoons: 1}).sort({numberOfMoons: -1}).pretty()
@@ -377,14 +341,14 @@ db.solarSystem.aggregate(
 	], {allowDiskUse: true}
 )
 
-// ============================================================================================
-$sample
--- select a random number of documents
--- {$sample : {size: <N>}}
-   when
-   a. N<= 5% of the documents in source collection AND
-   b. Source collection has >= 100 documents AND
-   c. $sample is the first stage
+// ###########################################################################################################################################################
+//$sample
+// select a random number of documents
+// {$sample : {size: <N>}}
+//   when
+//   a. N<= 5% of the documents in source collection AND
+//   b. Source collection has >= 100 documents AND
+//  c. $sample is the first stage
    
 db.nycFacilities.aggregate(
 	[
@@ -394,7 +358,7 @@ db.nycFacilities.aggregate(
 	]
 )   
     
-// ============================================================================================    
+// ###########################################################################################################################################################
 Exercise:
 
 db.movies.aggregate(
@@ -436,3 +400,124 @@ db.movies.aggregate(
 		}
 	]
 ).pretty()
+
+// ###########################################################################################################################################################
+// Exercise
+// creating new fields with addFields
+
+db.movies.aggregate(
+	[
+		{
+			$match: {
+				$and: [
+					{"imdb.rating" : {$gte: 1}}
+					,{"imdb.votes" : {$gte: 1}}
+					,{year : {$gte: 1990}}
+					,{languages:{$in :["English"]}}
+				]
+			}
+		},
+		{
+			$addFields: {
+				x_max : {$literal : 1521105}
+				,x_min : {$literal : 5}
+				,min : {$literal : 1}
+				,max : {$literal : 10}
+				,x : "$imdb.votes"
+			}
+		},
+		{
+			$addFields:{
+				scaled_votes: {
+					$add: [
+					  1,
+					  {
+						$multiply: [
+						  9,
+						  {
+							$divide: [
+							  { $subtract: ["$x", "$x_min"] },
+							  { $subtract: ["$x_max", "$x_min"] }
+							]
+						  }
+						]
+					  }
+					]
+				}
+			}
+		},
+		{
+			$addFields:{
+				normalized_rating: {
+					$avg: [
+						"$scaled_votes"
+						,"$imdb.votes"
+					]
+				}
+			}
+		},
+		{
+			$project:{
+				_id:0
+				,title: 1
+				,year: 1
+				,"imdb.votes": 1
+				,"imdb.rating": 1
+				,languages: 1
+				,normalized_rating: 1
+			}
+		},
+		{
+			$sort: {
+				normalized_rating : 1
+			}
+		}
+	], {allowDiskUse: true}
+)
+
+// another way to do the same using project only
+
+db.movies.aggregate([
+  {
+    $match: {
+      year: { $gte: 1990 },
+      languages: { $in: ["English"] },
+      "imdb.votes": { $gte: 1 },
+      "imdb.rating": { $gte: 1 }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      title: 1,
+      "imdb.rating": 1,
+      "imdb.votes": 1,
+      normalized_rating: {
+        $avg: [
+          "$imdb.rating",
+          {
+            $add: [
+              1,
+              {
+                $multiply: [
+                  9,
+                  {
+                    $divide: [
+                      { $subtract: ["$imdb.votes", 5] },
+                      { $subtract: [1521105, 5] }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  { $sort: { normalized_rating: 1 } },
+  { $limit: 1 }
+])
+
+// ###########################################################################################################################################################
+// $GROUP
