@@ -856,3 +856,26 @@ db.movies.aggregate([
     $limit: 1
   }
 ])
+
+
+// ###########################################################################################################################################################
+// $LOOKUP
+// this is used for joining two collections
+// similar to left outer join in SQL
+// localField is for current collection 
+// foreignField is the joined collection
+// the from field cannot be sharded
+// the from collection must be in same database
+// the values in localField and foreignField are matched on equality
+// as can be any name, but if it exists in the working document, it will be overwritten
+
+db.air_alliances.aggregate([
+	{
+		$lookup: {
+			from: "air_airlines",
+			localField: "airlines",
+			foreignField: "name",
+			as: "airlines"
+		}
+	}
+])
