@@ -521,3 +521,80 @@ db.movies.aggregate([
 
 // ###########################################################################################################################################################
 // $GROUP
+
+// _id is where to specify what incoming documents should be grouped on
+// $group has accumulator expressions that specify what logic to be used
+// $group can be used multiple times in a pipeline
+// it may be necessary to sanitize the incoming data before applying accumulator logic
+ 
+db.movies.aggregate([
+	{
+		$group: {
+			_id: "$year"
+			,num_of_films_per_year: {
+				$sum: 1
+			}
+		}
+	},
+	{
+		$sort: {
+			num_of_films_per_year: -1
+		}
+	}
+])
+
+//_id can also use a derived expression
+db.movies.aggregate([
+	{
+		$group: {
+			_id: {
+				numDirectors: {
+					$cond: [{$isArray: "$directors"},{$size: "$directors"},0]
+				}
+			}
+			,numFilms: {
+				$sum: 1
+			}
+			,averageMetacritic: {
+				$avg: "$metacritic"
+			}
+		}
+	},
+	{
+		$sort: {
+			"_id.numDirectors": -1
+		}
+	}
+])
+
+//find the document with a specific field has the size
+db.movies.findOne({ directors: {$size: 44} })
+
+// if there is no _id column, aggregate runs on full collection
+db.movies.aggregate([
+	{
+		$group: {
+			_id: null
+			,count: {$sum : 1}
+		}
+	}
+])
+
+// above command gives count of documents in collection same as below
+db.movies.count()
+
+
+// if there is no _id column, aggregate runs on full collection
+db.movies.aggregate([
+	{
+		$match: {
+			metacritic : { $gte: 0 }
+		}
+	},
+	{
+		$group: {
+			_id: null
+			,averageMetacritic: {$avg : "$metacritic"}
+		}
+	}
+])
