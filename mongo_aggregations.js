@@ -709,3 +709,76 @@ db.movies.aggregate([
 ])
 
 // ###########################################################################################################################################################
+// $UNWIND
+// it splits array into individual documents 
+
+// following would list all values each year per genre and gives rating
+db.movies.aggregate([
+	{
+		$match:{
+			"imdb.rating":{$gt: 0},
+			year:{$gte:2010, $lte:2015},
+			runtime:{$gte: 90}
+		}
+	},
+	{
+		$unwind: "$genres"
+	},
+	{
+		$group: {
+			_id:{
+				year: "$year",
+				genre: "$genres"
+			},
+			avg_rating: {$avg: "$imdb.rating"}
+		}
+	},
+	{
+		$sort:{
+			"_id.year": -1,
+			average_rating: -1
+		}
+	}
+])
+
+// if it further needs to be grouped per year only, use below
+
+db.movies.aggregate([
+	{
+		$match:{
+			"imdb.rating":{$gt: 0},
+			year:{$gte:2010, $lte:2015},
+			runtime:{$gte: 90}
+		}
+	},
+	{
+		$unwind: "$genres"
+	},
+	{
+		$group: {
+			_id:{
+				year: "$year",
+				genre: "$genres"
+			},
+			avg_rating: {$avg: "$imdb.rating"}
+		}
+	},
+	{
+		$sort:{
+			"_id.year": -1,
+			average_rating: -1
+		}
+	},
+	{
+		$group:{
+			_id: "$_id.year",
+			genre: {$first: "$_id.genre",
+			avg_rating: {$first: "$avg_rating"}
+		}
+	},
+	{
+		$sort:{
+			_id: -1
+		}
+	}
+])
