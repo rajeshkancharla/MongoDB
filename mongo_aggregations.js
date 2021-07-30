@@ -1107,6 +1107,8 @@ db.movies.aggregate([
 
 
 // Multiple FACETS
+// this is like sub pipelining within aggregation framework
+// all pipelines are independent and have no interaction between them
 
 db.companies.aggregate( [
     {"$match": { "$text": {"$search": "Databases"} } },
