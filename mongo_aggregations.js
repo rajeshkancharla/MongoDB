@@ -962,3 +962,170 @@ db.air_alliances.aggregate([
     }
   }
 ])
+
+// ###########################################################################################################################################################
+// FACETS
+
+db.companies.createIndex({'plot': 'text', 'fullplot': 'text'})
+
+db.movies.aggregate([
+	{'$match': {'$text': {'$search': {"children"} } } },
+	{'$sortByCount': '$type'}
+])
+
+// ###########################################################################################################################################################
+// $BUCKETS
+// the below command runs the filter criteria and then groups companies based on number of employees
+// and then buckets them into the ranges 0-19, 20-49, 50-99 etc
+// boundaries array should be all of same data type
+
+db.companies.aggregate([
+	{
+		$match: {
+			{'founded_year': {'$gt': 1980}, 'number_of_employees': {'$ne': null}}
+		},
+		{
+			$bucket: {
+				'groupBy': '$number_of_employees',
+				'boundaries': [0,20,50,100,500,1000,Infinity]
+			}
+		}
+	}
+])
+
+// if the value that is being bucketed doesn't fall into the range of boundaries specified, it fails
+// hence a default value needs to be specified
+// the below will list all cases of non numeric values / nulls in number_of_employees to Other bucket
+
+db.companies.aggregate([
+	{
+		$match: {
+			{'founded_year': {'$gt': 1980}}
+		},
+		{
+			$bucket: {
+				'groupBy': '$number_of_employees',
+				'boundaries': [0,20,50,100,500,1000,Infinity],
+				'default':'Other'
+			}
+		}
+	}
+])
+
+// if the output of bucket need to have additional properties, it can be done using 'output' property in bucket
+// the below code sums up all the bucket values and shows average of those values and also lists category_code for those buckets
+
+db.companies.aggregate([
+	{
+		$match: {
+			{'founded_year': {'$gt': 1980}}
+		},
+		{
+			$bucket: {
+				'groupBy': '$number_of_employees',
+				'boundaries': [0,20,50,100,500,1000,Infinity],
+				'default':'Other',
+				'output': {
+					'total': {'$sum': 1},
+					'average': {'$avg': '$number_of_employees'},
+					'categories': {'$addToSet': '$category_code'}
+				}
+			}
+		}
+	}
+])
+
+// ###########################################################################################################################################################
+// AUTOMATIC BUCKETS
+// instead of predefining the bucket ranges, bucketAuto takes input as buckets and arranges data as per the number specified.
+// it returns a min and max values for each of the bucket ranges
+// it tries to evenly balance the number of documents in each of the buckets
+
+db.companies.aggregate([
+	{$match: {'offices.city':'New York'},
+	{
+		$bucketAuto:{
+			'groupBy': '$founded_year',
+			'buckets': 5
+		}
+	}
+])
+
+// after bucketing, additional outputs can be added with 'output'
+
+db.companies.aggregate([
+	{$match: {'offices.city':'New York'},
+	{
+		$bucketAuto:{
+			'groupBy': '$founded_year',
+			'buckets': 5,
+			'output': {
+					'total': {'$sum': 1},
+					'average': {'$avg': '$number_of_employees'}
+				}
+		}
+	}
+])
+
+
+// below line will generate a series collection with 1-1000
+// then it splits all numbers equally into each of the 5 buckets in range of 200 each
+
+for (i=1; i<= 1000; i++) {db.series.insert({_id:i})}
+
+db.series.aggregate([
+	{
+		$bucketAuto: {
+			groupBy: '_id',
+			buckets: 5
+		}
+	}
+])
+
+// if a different level of split is required, use granularity (a numerical series)
+// then the min and max will be refined as per the granularity specified instead of evenly distributing all values equally
+
+db.series.aggregate([
+	{
+		$bucketAuto: {
+			groupBy: '_id',
+			buckets: 5,
+			granularity: 'R20'
+		}
+	}
+])
+
+// ###########################################################################################################################################################
+// Single FACETS
+
+db.companies.createIndex({'plot': 'text', 'fullplot': 'text'})
+
+db.movies.aggregate([
+	{'$match': {'$text': {'$search': {"children"} } } },
+	{'$sortByCount': '$type'}
+])
+
+
+// Multiple FACETS
+
+db.companies.aggregate( [
+    {"$match": { "$text": {"$search": "Databases"} } },
+    { "$facet": {
+      "Categories": [{"$sortByCount": "$category_code"}],
+      "Employees": [
+        { "$match": {"founded_year": {"$gt": 1980}}},
+        {"$bucket": {
+          "groupBy": "$number_of_employees",
+          "boundaries": [ 0, 20, 50, 100, 500, 1000, Infinity  ],
+          "default": "Other"
+        }}],
+      "Founded": [
+        { "$match": {"offices.city": "New York" }},
+        {"$bucketAuto": {
+          "groupBy": "$founded_year",
+          "buckets": 5   }
+        }
+      ]
+  }}]).pretty() 	
+
+// ###########################################################################################################################################################
