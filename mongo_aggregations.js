@@ -1193,3 +1193,66 @@ db.movies.aggregate([
     }
   }
 ])
+
+
+// ###########################################################################################################################################################
+// #REDACT
+// helps protecting information from unauthorized access
+// however it is not for restricting access to a collection
+// {$redact: <expression>}
+// expression is an expression or group of expressions but must resolve to one of three values
+//   $$DESCEND - Retain the current level and evaluates the next level down
+//   $$PRUNE   - Remove (removes all fields at current document level without further inspection)
+//   $$KEEP    - Retain (retains all fields at current document level without further inspection)
+
+
+var userAccess = "Management"
+
+db.employees.aggregate([
+    {
+      "$redact": {
+        "$cond": [{ "$in": [userAccess, "$acl"] }, "$$DESCEND", "$$PRUNE"]
+      }
+    }
+  ]).pretty()
+
+// ###########################################################################################################################################################
+// $OUT
+// this is like creating a new collection within the same database as source collection
+// specify name of output collection we want
+// should be last stage in pipeline and it can't be used within a facet
+// it will create a new collection or overwrite an existing collection if required
+// honors indexes on existing coollections
+// will not create or overwrite data if pipeline errors
+// {$out: "output_collection"}
+
+// ###########################################################################################################################################################
+// $MERGE
+// $OUT always overwrites or creates new table and the collection being should be unsharded
+// $MERGE is a new feature since mongo 4.2 where user can decide to write
+// can merge documents from an aggregation and a target collection
+// $MERGE collection specified can be 
+//      a new one
+//      an existing one
+//      in same DB or different db
+//      sharded
+{
+	$merge: {
+		into: <target>,
+		on: <fields>
+	}
+}
+// target can be in same db (no need to specify db name) or different db (specify db name)
+// on specified the matching fields. if on is not specified, it merges on _id field and in case of sharded, with shard keys
+
+// nothing matched: usually insert
+// docuemnt matched: overwrite or update
+
+{
+	$merge: {
+		into: <target>,
+		whenNotMatched: "insert" | "discard" | "fail"
+		whenMatched: "merge" | "replace" | "keepExisting" | "fail" | [...]
+		on: <fields>
+	}
+}
